@@ -156,8 +156,8 @@ of having the same kind through the whole rule.
     {{\Gamma}[\hat{\alpha}]\vdash A\subt \hat{\alpha}\dashv\Delta
       {\color{gray} \dashrightarrow M}}
 
-  \inferrule[Sub-Mod]{\Gamma\vdash A\subt B\dashv\Delta{\color{gray} \dashrightarrow M}}
-    {\Gamma\vdash\mu A\subt\mu B\dashv\Delta{\color{gray} \dashrightarrow \lambda x^A . (\lambda y^B. \kmod_\mu y) (M x) }}
+  \inferrule[Sub-Mod]{\Gamma\vdash G\subt G'\dashv\Delta{\color{gray} \dashrightarrow M}}
+    {\Gamma\vdash\overline{\mu} G\subt\overline{\mu} G'\dashv\Delta{\color{gray} \dashrightarrow \lambda x^{\overline{\mu} G} . \textsf{\textbf{let mod}}_{\overline{\mu}} x = x \textsf{\textbf{ in }} (\lambda y^{G'}. \kmod_\mu y) (M x) }}
   \end{mathpar}
 
   \caption{Algorithmic subtyping: $\Gamma\vdash A\subt B\dashv\Delta{\color{gray} \dashrightarrow M}$}
