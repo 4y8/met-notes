@@ -86,7 +86,52 @@ different modalities on the top-level. And using equality of modalities inside
 types when unifying.
 
 \subsection{Copying the original subtyping relation}
-\subsubsection{Contexts.}
+
+\subsubsection{Declarative subtyping.}
+We give declarative rules for subtyping in Figure~\ref{decl-subt}. Like in \textsf{METL}, they
+require an additional effect context. Contexts are those of \textsf{METL}.
+
+\begin{figure}[h]
+  \begin{mathpar}
+    \inferrule[$\leq-$Var]
+      {\Gamma\vdash\alpha:\textsf{Any}}
+      {\Gamma\vdash\alpha\leq\alpha\ectx{E}}
+
+    \inferrule[$\leq-$Unit]
+      {\\}
+      {\Gamma\vdash 1\leq1\ectx{E}}
+
+    \inferrule[$\leq-$-Fun]
+      {\Gamma\vdash B_1\leq A_1\ectx{E}\\
+       \Gamma\vdash A_2\leq B_2\ectx{E}}
+      {\Gamma\vdash A_1\to A_2\leq B_1\to B_2\ectx{E}}
+
+    \inferrule[$\leq-$ForallL]
+      {\Gamma\vdash\tau:K\\
+       \Gamma\vdash[\tau/\alpha]A\leq B\ectx{E}}
+      {\Gamma\vdash\forall\alpha:K.A\leq B\ectx{E}}
+
+    \inferrule[$\leq-$ForallR]
+      {\Gamma,\beta:K\vdash A\leq B\ectx{E}}
+      {\Gamma\vdash A\leq\forall\beta.B\ectx{E}}
+
+    \inferrule[$\leq-$Mod]
+      {\Gamma\vdash(G,\overline{\mu})\Rightarrow\overline{\nu}\ectx{E}\\
+       \Gamma\vdash G\leq G'\ectx{\overline{mu}(E)}}
+      {\Gamma\vdash\overline{\mu} G\leq\overline{\nu} G\ectx{E}}
+  \end{mathpar}
+
+  \caption{Declarative subtyping}\label{decl-subt}
+\end{figure}
+
+\subsubsection{Declarative typing rules.}
+The declarative typing rules are those of Dunfield and
+Krishnaswami~\cite{dunfield2013complete} modified to take effect contexts into
+account except for variables for which we use the \textsf{METL}. We add rules
+for handlers, and the second rule to take modalities into account in
+applications.
+
+\subsubsection{Algorithmic contexts.}
 We merge the definitions of contexts given by both papers in
 Figure~\ref{contexts}. We use the hole notation, meaning that: $\Gamma[\Delta]$
 is a context of the form: $\Gamma_L,\Delta,\Gamma_R$.
@@ -97,16 +142,15 @@ is a context of the form: $\Gamma_L,\Delta,\Gamma_R$.
   \mid \Gamma,\textsf{\scriptsize\faLock}_\mu
   \mid \Gamma, \blacktriangleright_{\hat{\alpha}}
   \]
-  \caption{Syntax of contexts}\label{contexts}
+  \caption{Syntax of algorithmic contexts}\label{contexts}
 \end{figure}
 
 
-\subsubsection{Subtyping and instantiation.}
+\subsubsection{Algorithmic subtyping and instantiation.}
 We have the same algorithmic subtyping and instantiation rules to which we add
-the rule \textsc{Sub-Mod} to cross modalities when they are the same on both
-sides; there is no rule for instantiation with modalities. And each rule has now
-an elaboration part which is a (meta-theoretic) function, that maps terms to
-terms.
+the rule \textsc{Sub-Mod} which deals with modality subtyping; there is no rule
+for instantiation with modalities. And each rule has now an elaboration part
+which is a (meta-theoretic) function, that maps terms to terms.
 
 When writing rules, we omit the kind of type variables when they are not
 significant. In absence of kind annotation, a same variable should be considered
@@ -115,48 +159,52 @@ of having the same kind through the whole rule.
 \begin{figure}[h]
   \centering
   \begin{mathpar}
-    \inferrule[Sub-Var]{\\}{\Gamma[\alpha]\vdash\alpha\subt\alpha\dashv\Gamma[\alpha]
-      {\color{gray} \dashrightarrow M\mapsto M}}
+    \inferrule[Sub-Var]{\\}{\Gamma[\alpha]\vdash\alpha\subt\alpha\dashv\Gamma[\alpha]\ectx{E}
+      \elab{M\mapsto M}}
     
-    \inferrule[Sub-ExVar]{\\}{\Gamma[\hat{\alpha}]\vdash\hat{\alpha}\subt\hat{\alpha}\dashv\Gamma[\hat{\alpha}]
-      {\color{gray} \dashrightarrow M\mapsto M}}
+    \inferrule[Sub-ExVar]{\\}{\Gamma[\hat{\alpha}]\vdash\hat{\alpha}\subt\hat{\alpha}\dashv\Gamma[\hat{\alpha}]\ectx{E}
+      \elab{M\mapsto M}}
 
-    \inferrule[Sub-Unit]{\\}{\Gamma\vdash 1\subt1\dashv\Gamma
-      {\color{gray} \dashrightarrow M\mapsto M}}
+    \inferrule[Sub-Unit]{\\}{\Gamma\vdash 1\subt1\dashv\Gamma\ectx{E}
+      \elab{M\mapsto M}}
 
-    \inferrule[Sub-Fun]{\Gamma\vdash B_1\subt A_1\dashv\Theta
-      {\color{gray} \dashrightarrow f}\\
-      \Theta{\vdash} [\Theta]A_2 {\subt} [\Theta]B_2\dashv\Delta
-      {\color{gray} \dashrightarrow g}}{
+    \inferrule[Sub-Fun]{\Gamma\vdash B_1\subt A_1\dashv\Theta\ectx{E}
+      \elab{f}\\
+      \Theta{\vdash} [\Theta]A_2 {\subt} [\Theta]B_2\dashv\Delta\ectx{E}
+      \elab{g}}{
       \Gamma\vdash A_1\to A_2\subt B_1\to B_2\dashv \Delta \elab{M\mapsto\lambda x^{B_1}.g (M (f(x)))}}
 
     \inferrule[Sub-ForallL]{\Gamma,\blacktriangleright_{\hat{\alpha}},{\hat{\alpha}:K}
-      {\vdash}[{\hat{\alpha}}/\alpha]A\subt B\dashv\Delta,\blacktriangleright_{\hat{\alpha}},\Theta
+      {\vdash}[{\hat{\alpha}}/\alpha]A\subt B\dashv\Delta,\blacktriangleright_{\hat{\alpha}},\Theta\ectx{E}
       \elab{f}\\
       {\color{gray} \tau = [\Theta[\hat{\beta}=1/\hat{\beta}:K]]\hat{\alpha}}}
-      {\Gamma\vdash\forall\alpha:K.A\subt B\dashv\Delta
+      {\Gamma\vdash\forall\alpha:K.A\subt B\dashv\Delta\ectx{E}
        \elab{M \mapsto f(M \tau)}}
 
-  \inferrule[Sub-ForallR]{\Gamma,\alpha:K\vdash A\subt B\dashv\Delta,\alpha:K,\Theta
+  \inferrule[Sub-ForallR]{\Gamma,\alpha:K\vdash A\subt B\dashv\Delta,\alpha:K,\Theta\ectx{E}
     {\elab{f}}}
-    {\Gamma\vdash A\subt \forall\alpha:K.B\dashv\Delta
-      {\color{gray} \dashrightarrow M \mapsto \Lambda \alpha^K. f(M)}}
+    {\Gamma\vdash A\subt \forall\alpha:K.B\dashv\Delta\ectx{E}
+      \elab{M \mapsto \Lambda \alpha^K. f(M)}}
 
   \inferrule[Sub-InstantiateL]{\hat{\alpha}\not\in\textsf{FV}(A)\\
-    {\Gamma}[\hat{\alpha}]\vdash\hat{\alpha}:\leqq A\dashv\Delta
+    {\Gamma}[\hat{\alpha}]\vdash\hat{\alpha}:\leqq A\dashv\Delta\ectx{E}
     \elab{f}}
-    {{\Gamma}[\hat{\alpha}]\vdash\hat{\alpha}\subt A\dashv\Delta
+    {{\Gamma}[\hat{\alpha}]\vdash\hat{\alpha}\subt A\dashv\Delta\ectx{E}
       \elab{f}}
 
   \inferrule[Sub-InstantiateR]{\hat{\alpha}\not\in\textsf{FV}(A)\\
-    {\Gamma}[\hat{\alpha}]\vdash A\leqq:\hat{\alpha}\dashv\Delta
+    {\Gamma}[\hat{\alpha}]\vdash A\leqq:\hat{\alpha}\dashv\Delta\ectx{E}
     \elab{f}}
-    {{\Gamma}[\hat{\alpha}]\vdash A\subt \hat{\alpha}\dashv\Delta
+    {{\Gamma}[\hat{\alpha}]\vdash A\subt \hat{\alpha}\dashv\Delta\ectx{E}
       \elab{f}}
 
-  \inferrule[Sub-Mod]{\Gamma\vdash G\subt G'\dashv\Delta\elab{f}}
-    {\Gamma\vdash\overline{\mu} G\subt\overline{\mu} G'\dashv\Delta
-     \elab{M\mapsto\textsf{\textbf{let mod}}_{\overline{\mu}} x = M \textsf{\textbf{ in }} \kmod_{\overline{\mu}} f(x)} }
+  \inferrule[Sub-Mod]
+  {\Gamma\vdash(G,\overline{\mu})\Rightarrow \overline{\nu}\ectx{E}\\
+   \Gamma\vdash G\subt G'\dashv\Delta\ectx{\overline{\mu}(E)}
+   \elab{f}\\
+  }
+  {\Gamma\vdash\overline{\mu}G\subt\overline{\nu}G'\dashv\Delta\ectx{E}
+  \elab{M\mapsto\textsf{\textbf{let mod}}_{\overline{\mu}} x = M \textsf{\textbf{ in }} \kmod_{\overline{\nu}} f(x)}}
   \end{mathpar}
 
   \caption{Algorithmic subtyping: $\Gamma\vdash A\subt B\dashv\Delta{\color{gray} \dashrightarrow M}$}
@@ -171,55 +219,55 @@ actual definition is useless. The type $\tau$ is an arbitrary solution.
 \begin{figure}[h]
   \begin{mathpar}
     \inferrule[InstL-Solve]{\Gamma\vdash\tau:K}
-      {\Gamma,\hat{\alpha}:K,\Gamma'\vdash\hat{\alpha}:\leqq\tau\dashv\Gamma,\hat{\alpha}=\tau,\Gamma'
+      {\Gamma,\hat{\alpha}:K,\Gamma'\vdash\hat{\alpha}:\leqq\tau\dashv\Gamma,\hat{\alpha}=\tau,\Gamma'\ectx{E}
       \elab{M\mapsto M }}
 
     \inferrule[InstL-Reach]{\\}
-      {{\Gamma}[\hat{\alpha}:K][\hat{\beta}:K'] \vdash\hat{\alpha}:\leqq\hat{\beta}\dashv\Gamma[\hat{\alpha}:K\wedge K'][\hat{\beta}=\hat{\alpha}]
+      {{\Gamma}[\hat{\alpha}:K][\hat{\beta}:K'] \vdash\hat{\alpha}:\leqq\hat{\beta}\dashv\Gamma[\hat{\alpha}:K\wedge K'][\hat{\beta}=\hat{\alpha}]\ectx{E}
         \elab{M\mapsto M}}
 
     \inferrule[InstL-Arr]
       {{\Gamma}[{\hat{\alpha}}_2 :\textsf{Any}, {\hat{\alpha}}_1 :\textsf{Any},
                 \hat{\alpha}={\hat{\alpha}}_1\to{\hat{\alpha}}_2]
-        \vdash A_1\leqq: {\hat{\alpha}}_1 \dashv\Theta
+        \vdash A_1\leqq: {\hat{\alpha}}_1 \dashv\Theta\ectx{E}
         \elab{f}\\
-        \Theta\vdash {\hat{\alpha}}_2:{\leqq}[\Theta]A_2\dashv\Delta
+        \Theta\vdash {\hat{\alpha}}_2:{\leqq}[\Theta]A_2\dashv\Delta\ectx{E}
         \elab{g}}
-      {{\Gamma}[{\hat{\alpha}:\textsf{Any}}]\vdash\hat{\alpha}:\leqq A_1 \to A_2\dashv\Delta
+      {{\Gamma}[{\hat{\alpha}:\textsf{Any}}]\vdash\hat{\alpha}:\leqq A_1 \to A_2\dashv\Delta\ectx{E}
         \elab{M\mapsto\lambda x^{A_1}.g (M f(x))}}
 
     \inferrule[InstL-AllR]
-      {{\Gamma}[\hat{\alpha}],\beta:K\vdash\hat{\alpha}:\leqq B\dashv\Delta,\beta:K,\Delta'
+      {{\Gamma}[\hat{\alpha}],\beta:K\vdash\hat{\alpha}:\leqq B\dashv\Delta,\beta:K,\Delta'\ectx{E}
         \elab{f}}
-      {{\Gamma}[\hat{\alpha}]\vdash\hat{\alpha}:\leqq \forall\beta:K.B\dashv\Delta
+      {{\Gamma}[\hat{\alpha}]\vdash\hat{\alpha}:\leqq \forall\beta:K.B\dashv\Delta\ectx{E}
         \elab{M\mapsto\Lambda\beta^{K}.f(M)}}
   \end{mathpar}
 
 \begin{mathpar}
     \inferrule[InstR-Solve]{\Gamma\vdash\tau:K}
-      {\Gamma,\hat{\alpha}:K,\Gamma'\vdash\tau\leqq:\hat{\alpha}\dashv\Gamma,\hat{\alpha}=\tau,\Gamma'
+      {\Gamma,\hat{\alpha}:K,\Gamma'\vdash\tau\leqq:\hat{\alpha}\dashv\Gamma,\hat{\alpha}=\tau,\Gamma'\ectx{E}
       \elab{M\mapsto M}}
 
     \inferrule[InstR-Reach]{\\}
-      {{\Gamma}[\hat{\alpha}:K][\hat{\beta}:K'] \vdash\hat{\beta}\leqq:\hat{\alpha}\dashv\Gamma[\hat{\alpha}:K\wedge K'][\hat{\beta}=\hat{\alpha}]
+      {{\Gamma}[\hat{\alpha}:K][\hat{\beta}:K'] \vdash\hat{\beta}\leqq:\hat{\alpha}\dashv\Gamma[\hat{\alpha}:K\wedge K'][\hat{\beta}=\hat{\alpha}]\ectx{E}
         \elab{M\mapsto M}}
 
     \inferrule[InstR-Arr]
       {{\Gamma}[{\hat{\alpha}}_2:\textsf{Any}, {\hat{\alpha}}_1 : \textsf{Any},
                  \hat{\alpha}={\hat{\alpha}}_1\to{\hat{\alpha}}_2]
-        \vdash {\hat{\alpha}}_1:\leqq A_1 \dashv\Theta
+        \vdash {\hat{\alpha}}_1:\leqq A_1 \dashv\Theta\ectx{E}
         \elab{f}\\
-        \Theta\vdash [\Theta]A_2{\leqq}:{\hat{\alpha}}_2\dashv\Delta
+        \Theta\vdash [\Theta]A_2{\leqq}:{\hat{\alpha}}_2\dashv\Delta\ectx{E}
         \elab{g}}
-      {{\Gamma}[{\hat{\alpha}}:\textsf{Any}]\vdash A_1 \to A_2\leqq:\hat{\alpha}\dashv\Delta
+      {{\Gamma}[{\hat{\alpha}}:\textsf{Any}]\vdash A_1 \to A_2\leqq:\hat{\alpha}\dashv\Delta\ectx{E}
         \elab{M\mapsto\lambda x^{{\hat{\alpha}}_1}.g (M f(x))}}
 
     \inferrule[InstR-AllL]
       {{\Gamma}[{\hat{\alpha}}],\blacktriangleright_{\hat{\beta}},{\hat{\beta}:K}
-      {\vdash}[{\hat{\beta}}/\beta]B\leqq: \hat{\alpha}\dashv\Delta,\blacktriangleright_{\hat{\beta}},\Delta'
+      {\vdash}[{\hat{\beta}}/\beta]B\leqq: \hat{\alpha}\dashv\Delta,\blacktriangleright_{\hat{\beta}},\Delta'\ectx{E}
       \elab{f}\\
       {\color{gray} \tau = [[\hat{\gamma}=1/\hat{\gamma}:K]\Delta']\hat{\beta}}}
-      {{\Gamma}[\hat{\alpha}]\vdash\forall\beta:K.B\leqq:\hat{\alpha}\dashv\Delta
+      {{\Gamma}[\hat{\alpha}]\vdash\forall\beta:K.B\leqq:\hat{\alpha}\dashv\Delta\ectx{E}
         \elab{M\mapsto f(M\tau)}}
   \end{mathpar}
 
@@ -249,17 +297,12 @@ same way the original \textsf{METL} \textsc{B-App} rule did. This formulation
 allows interleaving modalities and quantifiers.
 \begin{figure}[h]
   \begin{mathpar}
-    \inferrule[B-Switch]
-      {\Gamma\vdash M\Rightarrow\overline{\mu}G'\ectx{E}
-        {\color{gray} \dashrightarrow M'}\\
-       (G',\overline{\mu})\Rightarrow\overline{\nu}\ectx{E}\\
-        \Gamma\vdash G' <: G \dashv \Delta {\color{gray} \dashrightarrow f}
-        \\
-        \text{$M$ is not a value or $\overline{\nu}$ is empty}
-      }
-      {\Gamma\vdash M \Leftarrow\overline{\nu}G \dashv\Delta\ectx{E}
-       \elab{\textsf{\textbf{let mod}}_{\overline{\mu}} x = M'
-        \textsf{ in } \kmod_{\overline{\nu}} f(x)}}
+
+\inferrule[B-Switch]
+  {\Gamma\vdash M\Rightarrow A\dashv\Theta\elab{M'}\\
+    \Theta{\vdash}[\Theta]A{\subt}[\Theta]B\dashv\Delta\ectx{E}\elab{f}\\
+    \text{no other rule apply}
+  }{\Gamma\vdash M\Leftarrow B\dashv\Delta\ectx{E}\elab{f(M')}}
 
     \inferrule[B-App]
       {\Gamma\vdash M\Rightarrow A\dashv\Delta\ectx{E}
@@ -288,10 +331,8 @@ allows interleaving modalities and quantifiers.
     \inferrule[App-All]
       {\Gamma,\hat{\alpha}:K\vdash ({\color{gray}M\hat{\alpha}:\ } [\hat{\alpha}/\alpha]A)
         \bullet N\Rrightarrow C\dashv\Delta\ectx{E}\elab{M'}}
-      {
-        \Gamma\vdash ({\color{gray}M:\ } \forall\alpha:K.A) \bullet N \Rrightarrow C\dashv\Delta\ectx{E}
-        \elab{M'}
-      }
+      {\Gamma\vdash ({\color{gray}M:\ } \forall\alpha:K.A) \bullet N \Rrightarrow C\dashv\Delta\ectx{E}
+       \elab{M'}}
 
     \inferrule[App-Mod]
       {{\overline{\mu}}_E\Rightarrow\langle\rangle_E\\
@@ -347,15 +388,6 @@ guarantees that $[\Delta]A$ is pure if and only if $[\Delta]B$.
 \end{figure}
 
 \subsection{Instanciation with modalities}
-\subsubsection{Subtyping modalities}
-We start by modifying the subtyping relation to allow subtyping of types with
-modalities, generalising the rule \textsc{B-Switch}. The subtyping relation now
-depends on an environment context: $\Gamma\vdash A\subt B \dashv \Delta \, @ \,E
-{\color{gray} \dashrightarrow f}$. Rules apart from \textsc{Sub-Mod} keep the
-same context.
-\[
-\inferrule[Sub-Mod]{\\}{\Gamma\vdash\overline{\mu}G\subt\overline{\nu}G'\dashv\Delta\ectx{E}}
-\]
 
 \subsubsection{Problems.}
 When unifying a flexible type variable $\hat{\alpha}$ against a
